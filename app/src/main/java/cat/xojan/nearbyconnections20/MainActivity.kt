@@ -10,10 +10,14 @@ import com.google.android.gms.common.api.Status
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 
+
+
 class MainActivity : AppCompatActivity(),
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
 
+    private var USERNAME = "usernickname"
+    private var SERVICEID = "serviceID"
     private lateinit var mGoogleApiClient: GoogleApiClient
     /** Callbacks for connections to other devices.  */
     private val mConnectionLifecycleCallback = object : ConnectionLifecycleCallback() {
@@ -31,13 +35,26 @@ class MainActivity : AppCompatActivity(),
         }
     }
     private val mEndpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
-        override fun onEndpointFound(
-                endpointId: String, discoveredEndpointInfo: DiscoveredEndpointInfo) {
-            // An endpoint was found!
+        override fun onEndpointFound(endpointId: String, discoveredEndpointInfo: DiscoveredEndpointInfo) {
+            Log.d(TAG, "onEndpointFound. Requesting connection")
+            Nearby.Connections.requestConnection(
+                    mGoogleApiClient,
+                    USERNAME,
+                    endpointId,
+                    mConnectionLifecycleCallback)
+                    .setResultCallback { status ->
+                        if (status.isSuccess) {
+                            Log.d(TAG, "successfully requested a connection.")
+                            // We successfully requested a connection. Now both sides
+                            // must accept before the connection is established.
+                        } else {
+                            Log.d(TAG, "Failed to request the connection:" + status.status + status.statusCode)
+                        }
+                    }
         }
 
         override fun onEndpointLost(endpointId: String) {
-            // A previously discovered endpoint has gone away.
+            Log.d(TAG, "onEndpointLost")
         }
     }
     private val TAG = "GoogleApiClient"
@@ -67,8 +84,8 @@ class MainActivity : AppCompatActivity(),
 
     override fun onConnected(p0: Bundle?) {
         Log.d(TAG, "connected")
-        startAdvertising()
-        //startDiscovery()
+        //startAdvertising()
+        startDiscovery()
     }
 
     override fun onConnectionSuspended(p0: Int) {
@@ -82,8 +99,8 @@ class MainActivity : AppCompatActivity(),
     private fun startAdvertising() {
         Nearby.Connections.startAdvertising(
                 mGoogleApiClient,
-                "userNickName",
-                "serviceID",
+                USERNAME,
+                SERVICEID,
                 mConnectionLifecycleCallback,
                 AdvertisingOptions(Strategy.P2P_STAR))
                 .setResultCallback { result ->
@@ -98,7 +115,7 @@ class MainActivity : AppCompatActivity(),
     private fun startDiscovery() {
         Nearby.Connections.startDiscovery(
                 mGoogleApiClient,
-                "serviceID",
+                SERVICEID,
                 mEndpointDiscoveryCallback,
                 DiscoveryOptions(Strategy.P2P_STAR))
                 .setResultCallback(
